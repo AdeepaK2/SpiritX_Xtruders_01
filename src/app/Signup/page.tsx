@@ -324,6 +324,26 @@ export default function SignupPage() {
         }
     };
 
+    // Add this new function
+    const handleGoogleSignIn = async () => {
+        toast.loading("Connecting to Google...", {
+            id: "google-signin",
+        });
+        
+        setIsLoading(true);
+        try {
+            await signIn('google', { 
+                callbackUrl: '/',
+                redirect: true
+            });
+        } catch (error) {
+            console.error("Google signup failed:", error);
+            toast.error("Google signup failed. Please try again.");
+            toast.dismiss("google-signin");
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
             {/* Toast container */}
@@ -502,15 +522,7 @@ export default function SignupPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                         <button 
-                            onClick={() => {
-                                setIsLoading(true);
-                                signIn('google', { callbackUrl: '/' })
-                                    .catch(error => {
-                                        setIsLoading(false);
-                                        console.error("Google signup failed:", error);
-                                        toast.error("Google signup failed. Please try again.");
-                                    });
-                            }}
+                            onClick={handleGoogleSignIn}
                             type="button"
                             disabled={isLoading}
                             className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
