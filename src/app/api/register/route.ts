@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connect from '@/utils/db';
 import User from '@/models/userSchema';
+import bcrypt from 'bcryptjs';
 import { validatePassword } from '@/app/api/validations/passwordValidator';
 
 export async function POST(request: NextRequest) {
@@ -56,10 +57,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new user
+    // Hash the password with bcrypt before saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create new user with hashed password
     const newUser = new User({
       username,
-      password, // Note: In a production app, you should hash passwords
+      password: hashedPassword,
     });
 
     // Save user to database

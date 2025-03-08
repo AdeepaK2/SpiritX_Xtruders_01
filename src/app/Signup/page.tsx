@@ -7,8 +7,8 @@ import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
-    const [name, setName] = useState("");
-    const [email, setEmail] = useState("");
+    const [fullName, setFullName] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -19,8 +19,8 @@ export default function SignupPage() {
     
     // Validation states
     const [errors, setErrors] = useState({
-        name: "",
-        email: "",
+        fullName: "",
+        username: "",
         password: "",
         confirmPassword: "",
         terms: "",
@@ -40,43 +40,43 @@ export default function SignupPage() {
         color: "bg-gray-200"
     });
 
-    // Real-time validation for username
+    // Real-time validation for full name
     useEffect(() => {
-        if (name) {
-            if (name.length < 8) {
+        if (fullName) {
+            if (fullName.trim().length < 2) {
                 setErrors(prev => ({
                     ...prev,
-                    name: "Username must be at least 8 characters long"
+                    fullName: "Full name is too short"
                 }));
             } else {
                 setErrors(prev => ({
                     ...prev,
-                    name: ""
+                    fullName: ""
+                }));
+            }
+        }
+    }, [fullName]);
+
+    // Real-time validation for username
+    useEffect(() => {
+        if (username) {
+            if (username.length < 8) {
+                setErrors(prev => ({
+                    ...prev,
+                    username: "Username must be at least 8 characters long"
+                }));
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    username: ""
                 }));
                 
                 // Here you would typically check username uniqueness against the server
                 // This is just a placeholder for the real implementation
-                // checkUsernameUniqueness(name);
+                // checkUsernameUniqueness(username);
             }
         }
-    }, [name]);
-
-    // Real-time validation for email
-    useEffect(() => {
-        if (email) {
-            if (!/\S+@\S+\.\S+/.test(email)) {
-                setErrors(prev => ({
-                    ...prev,
-                    email: "Email is invalid"
-                }));
-            } else {
-                setErrors(prev => ({
-                    ...prev,
-                    email: ""
-                }));
-            }
-        }
-    }, [email]);
+    }, [username]);
 
     // Password validation and strength checking
     useEffect(() => {
@@ -178,8 +178,8 @@ export default function SignupPage() {
     // Complete form validation before submission
     const validateForm = () => {
         const newErrors = {
-            name: "",
-            email: "",
+            fullName: "",
+            username: "",
             password: "",
             confirmPassword: "",
             terms: "",
@@ -194,21 +194,21 @@ export default function SignupPage() {
         
         let isValid = true;
 
-        // Username validation
-        if (!name.trim()) {
-            newErrors.name = "Username is required";
+        // Full name validation
+        if (!fullName.trim()) {
+            newErrors.fullName = "Full name is required";
             isValid = false;
-        } else if (name.length < 8) {
-            newErrors.name = "Username must be at least 8 characters long";
+        } else if (fullName.trim().length < 2) {
+            newErrors.fullName = "Full name is too short";
             isValid = false;
         }
 
-        // Email validation
-        if (!email) {
-            newErrors.email = "Email is required";
+        // Username validation
+        if (!username.trim()) {
+            newErrors.username = "Username is required";
             isValid = false;
-        } else if (!/\S+@\S+\.\S+/.test(email)) {
-            newErrors.email = "Email is invalid";
+        } else if (username.length < 8) {
+            newErrors.username = "Username must be at least 8 characters long";
             isValid = false;
         }
 
@@ -267,15 +267,15 @@ export default function SignupPage() {
         
         try {
             // Call the actual API endpoint
-            const response = await fetch('/api/addUser', {
+            const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: name, // Map name to username for API
-                    password: password,
-                    email: email // Note: The API doesn't currently use this but good to send it
+                    fullName: fullName,
+                    username: username,
+                    password: password
                 }),
             });
             
@@ -287,7 +287,7 @@ export default function SignupPage() {
                     toast.error("Username already exists");
                     setErrors(prev => ({
                         ...prev,
-                        name: "Username already exists"
+                        username: "Username already exists"
                     }));
                 } else if (response.status === 400 && data.details) {
                     // Password validation failed
@@ -358,31 +358,31 @@ export default function SignupPage() {
                             <input
                                 type="text"
                                 placeholder="John Doe"
-                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.name ? 'input-error' : ''}`}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.fullName ? 'input-error' : ''}`}
+                                value={fullName}
+                                onChange={(e) => setFullName(e.target.value)}
                             />
-                            {errors.name && (
+                            {errors.fullName && (
                                 <label className="label">
-                                    <span className="label-text-alt text-error">{errors.name}</span>
+                                    <span className="label-text-alt text-error">{errors.fullName}</span>
                                 </label>
                             )}
                         </div>
 
                         <div className="form-control">
                             <label className="label">
-                                <span className="label-text font-medium">Email</span>
+                                <span className="label-text font-medium">Username</span>
                             </label>
                             <input
-                                type="email"
-                                placeholder="your@email.com"
-                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.email ? 'input-error' : ''}`}
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                type="text"
+                                placeholder="johndoe123"
+                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.username ? 'input-error' : ''}`}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                             />
-                            {errors.email && (
+                            {errors.username && (
                                 <label className="label">
-                                    <span className="label-text-alt text-error">{errors.email}</span>
+                                    <span className="label-text-alt text-error">{errors.username}</span>
                                 </label>
                             )}
                         </div>
