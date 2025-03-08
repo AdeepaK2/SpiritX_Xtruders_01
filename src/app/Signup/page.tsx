@@ -267,7 +267,7 @@ export default function SignupPage() {
         
         try {
             // Call the actual API endpoint
-            const response = await fetch('/api/auth/register', {
+            const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

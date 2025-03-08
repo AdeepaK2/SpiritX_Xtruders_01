@@ -1,12 +1,42 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; // Import useRouter from next/navigation
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function DashboardPage() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true); // Start with loading state
+    const [user, setuser] = useState("User"); // Default user
     const router = useRouter(); // Initialize the router
+
+    // Authentication check on component mount
+    useEffect(() => {
+        checkAuthentication();
+    }, []);
+
+    const checkAuthentication = () => {
+        // Check both localStorage and sessionStorage
+        const sessionId = localStorage.getItem("sessionId") || sessionStorage.getItem("sessionId");
+        const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
+        
+        if (!sessionId) {
+            // No sessionId found in either storage, redirect to login
+            router.push("/Login");
+        } else {
+            // User is authenticated
+            if (storedUser) {
+                try {
+                    // Parse the JSON string and extract just the username
+                    const userObject = JSON.parse(storedUser);
+                    setuser(userObject.username || "User");
+                } catch (error) {
+                    console.error("Error parsing user data:", error);
+                    setuser(storedUser);
+                }
+            }
+            setIsLoading(false);
+        }
+    };
 
     const handleLogout = async () => {
         setIsLoading(true);
@@ -16,8 +46,9 @@ export default function DashboardPage() {
             await new Promise(resolve => setTimeout(resolve, 1000));
             console.log("Logging out...");
             
-            // If you have any auth state to clear, do it here
-            // For example: localStorage.removeItem("token");
+            // Clear auth state
+            localStorage.removeItem("sessionId");
+            localStorage.removeItem("user");
             
             // Use Next.js router to navigate to login page
             router.push("/Login");
@@ -27,6 +58,15 @@ export default function DashboardPage() {
             setIsLoading(false);
         }
     };
+
+    // Show loading state while checking authentication
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-pulse text-xl">Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
@@ -38,7 +78,7 @@ export default function DashboardPage() {
             >
                 <div className="card-body p-8">
                     <div className="flex flex-col items-center mb-8">
-                        <h2 className="card-title text-3xl font-bold text-center mb-2">Welcome USER</h2>
+                        <h2 className="card-title text-3xl font-bold text-center mb-2">Welcome {user}</h2>
                     </div>
 
                     <button 
