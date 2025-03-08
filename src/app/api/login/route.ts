@@ -1,40 +1,64 @@
 import { NextResponse } from 'next/server';
-
-// Mock database users - replace with real DB integration
-const mockUsers = [
-  { id: 1, email: "user@example.com", password: "Password123!" }
-];
+import connect from '@/utils/db';
+import User from '@/models/userSchema';
+import Session from '@/models/sessionSchema';
+import { validatePassword } from '@/app/api/validations/passwordValidator';
+import bcrypt from 'bcryptjs';
+const crypto = require('crypto');
 
 export async function POST(request: Request) {
   try {
-    const { email, password, rememberMe } = await request.json();
+    const { username, password, rememberMe } = await request.json();
 
-    // Validate credentials
-    const user = mockUsers.find(user => user.email === email);
-    
-    if (!user || user.password !== password) {
+    // Connect to the database
+    await connect();
+
+    // Find the user
+    const user = await User.findOne({ username });
+
+    // If user doesn't exist, return error
+    if (!user) {
       return NextResponse.json(
-        { error: "Invalid email or password" },
+        { error: "Invalid username or password" },
+        { status: 401 }
+      );
+    }
+    
+    // Verify password using secure comparison
+    // Assuming passwords are hashed in the database with bcrypt
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return NextResponse.json(
+        { error: "Invalid username or password" },
         { status: 401 }
       );
     }
 
-    // Create session (replace with real session management)
+    // Generate a session ID
     const sessionId = crypto.randomUUID();
     
-    // In a real app, you'd store this session in a database
-    // await db.insertSession({
-    //   sessionId,
-    //   userId: user.id,
-    //   createdAt: new Date(),
-    //   expiresAt: rememberMe ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000)
-    // });
+    // Set expiration time based on rememberMe
+    const expiresAt = new Date();
+    if (rememberMe) {
+      // 30 days if remember me is checked
+      expiresAt.setDate(expiresAt.getDate() + 30);
+    } else {
+      // 24 hours if remember me is not checked
+      expiresAt.setDate(expiresAt.getDate() + 1);
+    }
 
-    // Return success with session ID
+    // Store session in database
+    await Session.create({
+      sessionId,
+      userId: user._id,
+      expiresAt
+    });
+
     return NextResponse.json({ 
       success: true, 
       sessionId,
-      user: { id: user.id, email: user.email }
+      user: { id: user._id, username: user.username }
     });
   } catch (error) {
     console.error('Login error:', error);
