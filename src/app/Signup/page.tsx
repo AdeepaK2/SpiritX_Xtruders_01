@@ -7,7 +7,7 @@ import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
-    const [name, setName] = useState("");
+    const [username, setUsername] = useState(""); // Changed from name to username
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,7 +19,7 @@ export default function SignupPage() {
     
     // Validation states
     const [errors, setErrors] = useState({
-        name: "",
+        username: "", // Changed from name to username
         email: "",
         password: "",
         confirmPassword: "",
@@ -42,24 +42,24 @@ export default function SignupPage() {
 
     // Real-time validation for username
     useEffect(() => {
-        if (name) {
-            if (name.length < 8) {
+        if (username) {
+            if (username.length < 8) {
                 setErrors(prev => ({
                     ...prev,
-                    name: "Username must be at least 8 characters long"
+                    username: "Username must be at least 8 characters long" // Changed from name to username
                 }));
             } else {
                 setErrors(prev => ({
                     ...prev,
-                    name: ""
+                    username: "" // Changed from name to username
                 }));
                 
                 // Here you would typically check username uniqueness against the server
                 // This is just a placeholder for the real implementation
-                // checkUsernameUniqueness(name);
+                // checkUsernameUniqueness(username);
             }
         }
-    }, [name]);
+    }, [username]); // Changed from name to username
 
     // Real-time validation for email
     useEffect(() => {
@@ -178,7 +178,7 @@ export default function SignupPage() {
     // Complete form validation before submission
     const validateForm = () => {
         const newErrors = {
-            name: "",
+            username: "", // Changed from name to username
             email: "",
             password: "",
             confirmPassword: "",
@@ -195,11 +195,11 @@ export default function SignupPage() {
         let isValid = true;
 
         // Username validation
-        if (!name.trim()) {
-            newErrors.name = "Username is required";
+        if (!username.trim()) { // Changed from name to username
+            newErrors.username = "Username is required"; // Changed from name to username
             isValid = false;
-        } else if (name.length < 8) {
-            newErrors.name = "Username must be at least 8 characters long";
+        } else if (username.length < 8) { // Changed from name to username
+            newErrors.username = "Username must be at least 8 characters long"; // Changed from name to username
             isValid = false;
         }
 
@@ -267,15 +267,15 @@ export default function SignupPage() {
         
         try {
             // Call the actual API endpoint
-            const response = await fetch('/api/addUser', {
+            const response = await fetch('/api/auth/register', { // Updated API endpoint to match auth/login pattern
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    username: name, // Map name to username for API
+                    username: username, // Changed from name to username
                     password: password,
-                    email: email // Note: The API doesn't currently use this but good to send it
+                    email: email
                 }),
             });
             
@@ -287,7 +287,7 @@ export default function SignupPage() {
                     toast.error("Username already exists");
                     setErrors(prev => ({
                         ...prev,
-                        name: "Username already exists"
+                        username: "Username already exists" // Changed from name to username
                     }));
                 } else if (response.status === 400 && data.details) {
                     // Password validation failed
@@ -353,18 +353,18 @@ export default function SignupPage() {
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="form-control">
                             <label className="label">
-                                <span className="label-text font-medium">Full Name</span>
+                                <span className="label-text font-medium">Username</span> {/* Changed from Full Name to Username */}
                             </label>
                             <input
                                 type="text"
-                                placeholder="John Doe"
-                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.name ? 'input-error' : ''}`}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                placeholder="johndoe123" // Changed placeholder to reflect username
+                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.username ? 'input-error' : ''}`} // Changed from name to username
+                                value={username} // Changed from name to username
+                                onChange={(e) => setUsername(e.target.value)} // Changed from setName to setUsername
                             />
-                            {errors.name && (
+                            {errors.username && ( // Changed from name to username
                                 <label className="label">
-                                    <span className="label-text-alt text-error">{errors.name}</span>
+                                    <span className="label-text-alt text-error">{errors.username}</span> {/* Changed from name to username */}
                                 </label>
                             )}
                         </div>
