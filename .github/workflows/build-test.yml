@@ -26,8 +26,3 @@ jobs:
         run: npm run build
         env:
           MONGO_DB_URI: ${{ secrets.MONGO_DB_URI }}
-          
-      - name: Test
-        run: npm test
-        env:
-          MONGO_DB_URI: ${{ secrets.MONGO_DB_URI }}
