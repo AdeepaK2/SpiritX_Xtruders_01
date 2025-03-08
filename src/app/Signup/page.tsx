@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
+import { Toaster, toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
     const [name, setName] = useState("");
@@ -13,6 +15,7 @@ export default function SignupPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [agreeToTerms, setAgreeToTerms] = useState(false);
+    const router = useRouter();
     
     // Validation states
     const [errors, setErrors] = useState({
@@ -20,7 +23,14 @@ export default function SignupPage() {
         email: "",
         password: "",
         confirmPassword: "",
-        terms: ""
+        terms: "",
+        form: "",
+        passwordRequirements: {
+            minLength: false,
+            upperCase: false,
+            lowerCase: false,
+            specialChar: false
+        }
     });
 
     // Password strength indicator
@@ -86,6 +96,18 @@ export default function SignupPage() {
         const hasNumber = /[0-9]/.test(password);
         const isLongEnough = password.length >= 8;
 
+        // Update password requirements
+        setErrors(prev => ({
+            ...prev,
+            passwordRequirements: {
+                minLength: isLongEnough,
+                upperCase: hasUpperCase,
+                lowerCase: hasLowerCase,
+                specialChar: hasSpecialChar
+            }
+        }));
+
+        // Calculate strength score
         let score = 0;
         if (isLongEnough) score += 1;
         if (hasUpperCase) score += 1;
@@ -107,24 +129,18 @@ export default function SignupPage() {
             color: strengthMap[score - 1]?.color || "bg-gray-200"
         });
 
-        // Real-time password validation
-        let passwordError = "";
-        if (!isLongEnough) {
-            passwordError = "Password must be at least 8 characters long";
-        } else if (!hasLowerCase) {
-            passwordError = "Password must contain at least one lowercase letter";
-        } else if (!hasUpperCase) {
-            passwordError = "Password must contain at least one uppercase letter";
-        } else if (!hasSpecialChar) {
-            passwordError = "Password must contain at least one special character";
-        } else if (score < 3) {
-            passwordError = "Password is too weak";
+        // Password validation
+        if (!isLongEnough || !hasLowerCase || !hasUpperCase || !hasSpecialChar) {
+            setErrors(prev => ({
+                ...prev,
+                password: "Please meet all password requirements"
+            }));
+        } else {
+            setErrors(prev => ({
+                ...prev,
+                password: ""
+            }));
         }
-
-        setErrors(prev => ({
-            ...prev,
-            password: passwordError
-        }));
     }, [password]);
 
     // Real-time confirm password validation
@@ -166,7 +182,14 @@ export default function SignupPage() {
             email: "",
             password: "",
             confirmPassword: "",
-            terms: ""
+            terms: "",
+            form: "",
+            passwordRequirements: errors.passwordRequirements || {
+                minLength: false,
+                upperCase: false,
+                lowerCase: false,
+                specialChar: false
+            }
         };
         
         let isValid = true;
@@ -179,7 +202,6 @@ export default function SignupPage() {
             newErrors.name = "Username must be at least 8 characters long";
             isValid = false;
         }
-        // Uniqueness check would be done server-side
 
         // Email validation
         if (!email) {
@@ -199,21 +221,17 @@ export default function SignupPage() {
             const hasUpperCase = /[A-Z]/.test(password);
             const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
             const isLongEnough = password.length >= 8;
-
-            if (!isLongEnough) {
-                newErrors.password = "Password must be at least 8 characters long";
-                isValid = false;
-            } else if (!hasLowerCase) {
-                newErrors.password = "Password must contain at least one lowercase letter";
-                isValid = false;
-            } else if (!hasUpperCase) {
-                newErrors.password = "Password must contain at least one uppercase letter";
-                isValid = false;
-            } else if (!hasSpecialChar) {
-                newErrors.password = "Password must contain at least one special character";
-                isValid = false;
-            } else if (passwordStrength.score < 3) {
-                newErrors.password = "Password is too weak";
+            
+            // Update requirements status
+            newErrors.passwordRequirements = {
+                minLength: isLongEnough,
+                upperCase: hasUpperCase,
+                lowerCase: hasLowerCase,
+                specialChar: hasSpecialChar
+            };
+            
+            if (!isLongEnough || !hasUpperCase || !hasLowerCase || !hasSpecialChar) {
+                newErrors.password = "Please meet all password requirements";
                 isValid = false;
             }
         }
@@ -241,6 +259,7 @@ export default function SignupPage() {
         e.preventDefault();
         
         if (!validateForm()) {
+            toast.error("Please fix the errors in the form");
             return;
         }
         
@@ -250,9 +269,26 @@ export default function SignupPage() {
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
             console.log("Signup attempt with:", { name, email, password, agreeToTerms });
-            // Handle successful signup here
+            
+            // Add success notification
+            toast.success("Account created successfully!", {
+                duration: 3000,
+                position: "top-center",
+                icon: "🎉",
+            });
+            
+            // Wait a moment before redirecting
+            setTimeout(() => {
+                router.push('/Login');
+            }, 1500);
+            
         } catch (error) {
             console.error("Signup failed:", error);
+            toast.error("Registration failed. Please try again later.");
+            setErrors(prev => ({
+                ...prev,
+                form: "An unexpected error occurred. Please try again."
+            }));
         } finally {
             setIsLoading(false);
         }
@@ -260,6 +296,9 @@ export default function SignupPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
+            {/* Toast container */}
+            <Toaster />
+            
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -271,6 +310,13 @@ export default function SignupPage() {
                         <h2 className="card-title text-3xl font-bold text-center mb-2">Create Account</h2>
                         <p className="text-sm opacity-70 text-center">Sign up to get started</p>
                     </div>
+
+                    {errors.form && (
+                        <div className="alert alert-error mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>{errors.form}</span>
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="form-control">
@@ -330,7 +376,14 @@ export default function SignupPage() {
                                     {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                                 </button>
                             </div>
-                            {password && (
+                            {errors.password && (
+                                <label className="label">
+                                    <span className="label-text-alt text-error">{errors.password}</span>
+                                </label>
+                            )}
+                            
+                            {/* Password strength indicator */}
+                            {password.length > 0 && (
                                 <div className="mt-2">
                                     <div className="w-full bg-gray-200 rounded-full h-2.5">
                                         <div className={`h-2.5 rounded-full ${passwordStrength.color}`} style={{ width: `${(passwordStrength.score / 5) * 100}%` }}></div>
@@ -338,12 +391,27 @@ export default function SignupPage() {
                                     <p className="text-xs mt-1">{passwordStrength.message}</p>
                                 </div>
                             )}
-                            {errors.password && (
-                                <label className="label">
-                                    <span className="label-text-alt text-error">{errors.password}</span>
-                                </label>
+                            
+                            {/* Password requirements checklist */}
+                            {password.length > 0 && (
+                                <div className="mt-2 text-xs space-y-1">
+                                    <p className="font-medium">Password requirements:</p>
+                                    <ul className="space-y-1 pl-1">
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.minLength ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.minLength ? '✓' : '•'} At least 8 characters
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.upperCase ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.upperCase ? '✓' : '•'} One uppercase letter
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.lowerCase ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.lowerCase ? '✓' : '•'} One lowercase letter
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.specialChar ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.specialChar ? '✓' : '•'} One special character
+                                        </li>
+                                    </ul>
+                                </div>
                             )}
-                            <p className="text-xs mt-1 text-gray-500">Password must be at least 8 characters long, include uppercase and lowercase letters, numbers and special characters.</p>
                         </div>
 
                         <div className="form-control">
