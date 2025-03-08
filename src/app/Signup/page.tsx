@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react"; // Add this import
 
 export default function SignupPage() {
     const [fullName, setFullName] = useState("");
@@ -500,7 +501,20 @@ export default function SignupPage() {
                     <div className="divider my-6 text-xs text-gray-500">OR CONTINUE WITH</div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <button 
+                            onClick={() => {
+                                setIsLoading(true);
+                                signIn('google', { callbackUrl: '/' })
+                                    .catch(error => {
+                                        setIsLoading(false);
+                                        console.error("Google signup failed:", error);
+                                        toast.error("Google signup failed. Please try again.");
+                                    });
+                            }}
+                            type="button"
+                            disabled={isLoading}
+                            className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
                             <FaGoogle className="text-red-500" />
                             <span>Google</span>
                         </button>

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; // Import useRouter from next/navigation
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { signOut } from "next-auth/react"; // In page.tsx, add this import
 
 export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true); // Start with loading state
@@ -15,6 +16,12 @@ export default function DashboardPage() {
     }, []);
 
     const checkAuthentication = () => {
+        // Only run storage operations in browser context
+        if (typeof window === "undefined") {
+            setIsLoading(false);
+            return;
+        }
+        
         // Check both localStorage and sessionStorage
         const sessionId = localStorage.getItem("sessionId") || sessionStorage.getItem("sessionId");
         const storedUser = localStorage.getItem("user") || sessionStorage.getItem("user");
@@ -42,15 +49,21 @@ export default function DashboardPage() {
         setIsLoading(true);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log("Logging out...");
+            // Ensure we're in browser context before accessing localStorage
+            if (typeof window !== "undefined") {
+                // Clear local storage
+                localStorage.removeItem("sessionId");
+                localStorage.removeItem("user");
+                
+                // Also clear session storage to be thorough
+                sessionStorage.removeItem("sessionId");
+                sessionStorage.removeItem("user");
+            }
             
-            // Clear auth state
-            localStorage.removeItem("sessionId");
-            localStorage.removeItem("user");
+            // Sign out from NextAuth
+            await signOut({ redirect: false });
             
-            // Use Next.js router to navigate to login page
+            // Redirect
             router.push("/Login");
         } catch (error) {
             console.error("Logout failed:", error);
