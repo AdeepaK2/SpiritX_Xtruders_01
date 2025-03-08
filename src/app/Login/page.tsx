@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
+import { Toaster, toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -10,18 +12,167 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const router = useRouter();
+    
+    // Validation states
+    const [errors, setErrors] = useState({
+        email: "",
+        password: "",
+        form: "",
+        passwordRequirements: {
+            minLength: false,
+            upperCase: false,
+            lowerCase: false,
+            specialChar: false
+        }
+    });
+
+    // Real-time validation for email
+    useEffect(() => {
+        if (email) {
+            if (!/\S+@\S+\.\S+/.test(email)) {
+                setErrors(prev => ({
+                    ...prev,
+                    email: "Email is invalid"
+                }));
+            } else {
+                setErrors(prev => ({
+                    ...prev,
+                    email: ""
+                }));
+            }
+        }
+    }, [email]);
+
+    // Real-time validation for password
+    useEffect(() => {
+        if (password) {
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password);
+            const hasMinLength = password.length >= 8;
+            
+            // Instead of a single error message, track requirements separately
+            setErrors(prev => ({
+                ...prev,
+                password: !hasMinLength || !hasUpperCase || !hasLowerCase || !hasSpecialChar 
+                    ? "Please meet all password requirements" : "",
+                // Store requirements state in the component (removed number requirement)
+                passwordRequirements: {
+                    minLength: hasMinLength,
+                    upperCase: hasUpperCase,
+                    lowerCase: hasLowerCase,
+                    specialChar: hasSpecialChar
+                }
+            }));
+        }
+    }, [password]);
+
+    // Complete form validation before submission
+    const validateForm = () => {
+        const newErrors = {
+            email: "",
+            password: "",
+            form: "",
+            passwordRequirements: errors.passwordRequirements || {
+                minLength: false,
+                upperCase: false,
+                lowerCase: false,
+                specialChar: false
+            }
+        };
+        
+        let isValid = true;
+
+        // Email validation
+        if (!email) {
+            newErrors.email = "Email is required";
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            newErrors.email = "Email is invalid";
+            isValid = false;
+        }
+
+        // Password validation
+        if (!password) {
+            newErrors.password = "Password is required";
+            isValid = false;
+        } else {
+            // Enhanced password validation (removed number requirement)
+            const hasUpperCase = /[A-Z]/.test(password);
+            const hasLowerCase = /[a-z]/.test(password);
+            const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(password);
+            const hasMinLength = password.length >= 8;
+            
+            // Update requirements status (removed number)
+            newErrors.passwordRequirements = {
+                minLength: hasMinLength,
+                upperCase: hasUpperCase,
+                lowerCase: hasLowerCase,
+                specialChar: hasSpecialChar
+            };
+            
+            if (!hasMinLength || !hasUpperCase || !hasLowerCase || !hasSpecialChar) {
+                newErrors.password = "Please meet all password requirements";
+                isValid = false;
+            }
+        }
+
+        setErrors(newErrors);
+        return isValid;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
+        
         setIsLoading(true);
         
         try {
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log("Login attempt with:", { email, password, rememberMe });
-            // Handle successful login here
+            
+            // Mock authentication (replace with actual auth logic)
+            const mockUsers = [
+                { email: "user@example.com", password: "Password123!" }
+            ];
+            
+            const user = mockUsers.find(user => user.email === email);
+            
+            if (!user || user.password !== password) {
+                setErrors(prev => ({
+                    ...prev,
+                    form: "Invalid email or password"
+                }));
+                toast.error("Login failed. Invalid email or password.");
+                return;
+            }
+            
+            console.log("Login successful with:", { email, password, rememberMe });
+            
+            // Add success notification
+            toast.success("Login successful!", {
+                duration: 3000,
+                position: "top-center",
+                icon: "🎉",
+            });
+            
+            // Wait a moment before redirecting to give the toast time to display
+            setTimeout(() => {
+                // Redirect to dashboard or home page after successful login
+                router.push('/Dashboard'); // Change this to your desired route
+            }, 1500);
+            
         } catch (error) {
             console.error("Login failed:", error);
+            toast.error("Login failed. Please try again later.");
+            setErrors(prev => ({
+                ...prev,
+                form: "An unexpected error occurred. Please try again."
+            }));
         } finally {
             setIsLoading(false);
         }
@@ -29,6 +180,9 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4">
+            {/* Toast container */}
+            <Toaster />
+            
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -41,6 +195,13 @@ export default function LoginPage() {
                         <p className="text-sm opacity-70 text-center">Please sign in to continue</p>
                     </div>
 
+                    {errors.form && (
+                        <div className="alert alert-error mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span>{errors.form}</span>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="form-control">
                             <label className="label">
@@ -49,11 +210,15 @@ export default function LoginPage() {
                             <input
                                 type="email"
                                 placeholder="your@email.com"
-                                className="input input-bordered w-full focus:input-primary transition-all duration-200"
+                                className={`input input-bordered w-full focus:input-primary transition-all duration-200 ${errors.email ? 'input-error' : ''}`}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                required
                             />
+                            {errors.email && (
+                                <label className="label">
+                                    <span className="label-text-alt text-error">{errors.email}</span>
+                                </label>
+                            )}
                         </div>
 
                         <div className="form-control">
@@ -64,10 +229,9 @@ export default function LoginPage() {
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
-                                    className="input input-bordered w-full pr-10 focus:input-primary transition-all duration-200"
+                                    className={`input input-bordered w-full pr-10 focus:input-primary transition-all duration-200 ${errors.password ? 'input-error' : ''}`}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    required
                                 />
                                 <button 
                                     type="button"
@@ -78,6 +242,30 @@ export default function LoginPage() {
                                     {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                                 </button>
                             </div>
+                            {errors.password && (
+                                <label className="label">
+                                    <span className="label-text-alt text-error">{errors.password}</span>
+                                </label>
+                            )}
+                            {password.length > 0 && (
+                                <div className="mt-2 text-xs space-y-1">
+                                    <p className="font-medium">Password requirements:</p>
+                                    <ul className="space-y-1 pl-1">
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.minLength ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.minLength ? '✓' : '•'} At least 8 characters
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.upperCase ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.upperCase ? '✓' : '•'} One uppercase letter
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.lowerCase ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.lowerCase ? '✓' : '•'} One lowercase letter
+                                        </li>
+                                        <li className={`flex items-center gap-1 ${errors.passwordRequirements?.specialChar ? 'text-success' : 'text-error'}`}>
+                                            {errors.passwordRequirements?.specialChar ? '✓' : '•'} One special character
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center mt-2">
                                 <label className="cursor-pointer label justify-start gap-2 inline-flex">
                                     <input
