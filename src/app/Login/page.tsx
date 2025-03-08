@@ -154,7 +154,7 @@ export default function LoginPage() {
             // Wait a moment before redirecting to give the toast time to display
             setTimeout(() => {
                 // Redirect to dashboard or home page after successful login
-                router.push('/Dashboard');
+                router.push('/');
             }, 1500);
             
         } catch (error) {
