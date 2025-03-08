@@ -266,9 +266,41 @@ export default function SignupPage() {
         setIsLoading(true);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            console.log("Signup attempt with:", { name, email, password, agreeToTerms });
+            // Call the actual API endpoint
+            const response = await fetch('/api/addUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    username: name, // Map name to username for API
+                    password: password,
+                    email: email // Note: The API doesn't currently use this but good to send it
+                }),
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                // Handle API error responses
+                if (response.status === 409) {
+                    toast.error("Username already exists");
+                    setErrors(prev => ({
+                        ...prev,
+                        name: "Username already exists"
+                    }));
+                } else if (response.status === 400 && data.details) {
+                    // Password validation failed
+                    toast.error("Password doesn't meet security requirements");
+                    setErrors(prev => ({
+                        ...prev,
+                        password: "Password doesn't meet security requirements"
+                    }));
+                } else {
+                    throw new Error(data.error || "Registration failed");
+                }
+                return;
+            }
             
             // Add success notification
             toast.success("Account created successfully!", {
