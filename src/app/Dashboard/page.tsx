@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Import useRouter from next/navigation
 import Link from "next/link";
 import { motion } from "framer-motion";
 
 export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter(); // Initialize the router
 
     const handleLogout = async () => {
         setIsLoading(true);
@@ -13,8 +15,12 @@ export default function DashboardPage() {
             // Simulate API call
             await new Promise(resolve => setTimeout(resolve, 1000));
             console.log("Logging out...");
-            // Redirect to login page or handle logout
-            // window.location.href = "/login";
+            
+            // If you have any auth state to clear, do it here
+            // For example: localStorage.removeItem("token");
+            
+            // Use Next.js router to navigate to login page
+            router.push("/Login");
         } catch (error) {
             console.error("Logout failed:", error);
         } finally {
