@@ -132,26 +132,37 @@ export default function LoginPage() {
         setIsLoading(true);
         
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Call the authentication API
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, password, rememberMe }),
+            });
             
-            // Mock authentication (replace with actual auth logic)
-            const mockUsers = [
-                { email: "user@example.com", password: "Password123!" }
-            ];
+            const data = await response.json();
             
-            const user = mockUsers.find(user => user.email === email);
-            
-            if (!user || user.password !== password) {
+            if (!response.ok) {
                 setErrors(prev => ({
                     ...prev,
-                    form: "Invalid email or password"
+                    form: data.error || "Authentication failed"
                 }));
-                toast.error("Login failed. Invalid email or password.");
+                toast.error(data.error || "Login failed. Please try again.");
                 return;
             }
             
-            console.log("Login successful with:", { email, password, rememberMe });
+            // Store session data (you might want to use a more secure method or state management like Context API)
+            if (rememberMe) {
+                localStorage.setItem('sessionId', data.sessionId);
+                localStorage.setItem('user', JSON.stringify(data.user));
+            } else {
+                // For session-only storage
+                sessionStorage.setItem('sessionId', data.sessionId);
+                sessionStorage.setItem('user', JSON.stringify(data.user));
+            }
+            
+            console.log("Login successful!");
             
             // Add success notification
             toast.success("Login successful!", {
@@ -163,7 +174,7 @@ export default function LoginPage() {
             // Wait a moment before redirecting to give the toast time to display
             setTimeout(() => {
                 // Redirect to dashboard or home page after successful login
-                router.push('/Dashboard'); // Change this to your desired route
+                router.push('/Dashboard');
             }, 1500);
             
         } catch (error) {
