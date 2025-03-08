@@ -15,6 +15,7 @@ export default function SignupPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [agreeToTerms, setAgreeToTerms] = useState(false);
+    const [showSuccessDialog, setShowSuccessDialog] = useState(false); // Add this state
     const router = useRouter();
     
     // Validation states
@@ -302,17 +303,13 @@ export default function SignupPage() {
                 return;
             }
             
-            // Add success notification
-            toast.success("Account created successfully!", {
-                duration: 3000,
-                position: "top-center",
-                icon: "🎉",
-            });
+            // Show success dialog instead of just a toast
+            setShowSuccessDialog(true);
             
-            // Wait a moment before redirecting
+            // Wait 2 seconds before redirecting
             setTimeout(() => {
                 router.push('/Login');
-            }, 1500);
+            }, 2000);
             
         } catch (error) {
             console.error("Signup failed:", error);
@@ -521,6 +518,40 @@ export default function SignupPage() {
                     </p>
                 </div>
             </motion.div>
+            
+            {/* Success dialog */}
+            {showSuccessDialog && (
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                >
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-2xl"
+                    >
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-green-100 rounded-full mx-auto flex items-center justify-center mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Account Created!</h3>
+                            <p className="text-gray-600 dark:text-gray-300 mb-4">Your account has been successfully created.</p>
+                            <p className="text-sm text-gray-500">Redirecting to login page...</p>
+                            <div className="mt-4 w-full bg-gray-200 rounded-full h-1.5">
+                                <motion.div 
+                                    className="bg-primary h-1.5 rounded-full" 
+                                    initial={{ width: "0%" }}
+                                    animate={{ width: "100%" }}
+                                    transition={{ duration: 2 }}
+                                />
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
         </div>
     );
 }
