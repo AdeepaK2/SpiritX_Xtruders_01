@@ -28,7 +28,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/10 to-base-300 flex items-center justify-center p-4">
+        <div className="min-h-screen flex items-center justify-center p-4">
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -109,11 +109,11 @@ export default function LoginPage() {
                     <div className="divider my-6 text-xs text-gray-500">OR CONTINUE WITH</div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100">
+                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <FaGoogle className="text-red-500" />
                             <span>Google</span>
                         </button>
-                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100">
+                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <FaFacebook className="text-blue-600" />
                             <span>Facebook</span>
                         </button>
@@ -121,7 +121,7 @@ export default function LoginPage() {
 
                     <p className="text-center mt-8 text-sm">
                         Don't have an account?{" "}
-                        <Link href="/signup" className="text-primary font-semibold hover:underline">
+                        <Link href="/Signup" className="text-primary font-semibold hover:underline">
                             Sign up
                         </Link>
                     </p>
