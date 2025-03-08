@@ -58,17 +58,16 @@ const SocialLoginButtons = () => {
       id: "google-signin",
     });
     
-    // Clear any existing toast when starting Google sign-in
-    toast.dismiss("google-signin");
-    
     try {
+      // Direct redirect to homepage after Google authentication
       await signIn('google', { 
-        callbackUrl: window.location.origin,
+        callbackUrl: '/', // Change from window.location.origin to '/'
         redirect: true
       });
     } catch (error) {
       console.error("Google sign-in failed:", error);
       toast.error("Google sign-in failed. Please try again.");
+      toast.dismiss("google-signin");
     }
   };
 
@@ -329,6 +328,41 @@ export default function LoginPage() {
       return () => clearTimeout(timer);
     }
   }, [session, router, isNextAuthLoading]); // Add isNextAuthLoading to dependencies
+
+  useEffect(() => {
+    // Check if user is already on the login page due to a redirect
+    const isRedirectingFromCallback = typeof window !== 'undefined' && 
+      window.location.search.includes('callbackUrl');
+    
+    // If we have a session and we're not in a redirect loop
+    if (session && !isRedirectingFromCallback) {
+      // Save user data
+      if (session.user) {
+        const userData = {
+          username: session.user.email || session.user.name,
+          id: session.user.id || session.user.email
+        };
+        
+        localStorage.setItem('sessionId', session.user.id || Date.now().toString());
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Don't redirect again if we're already being redirected by NextAuth
+        if (window.location.pathname.includes('Login') && !window.location.search.includes('callback')) {
+          router.push('/');
+        }
+      }
+      setIsNextAuthLoading(false);
+    } else if (!isNextAuthLoading) {
+      checkAuthentication();
+    } else {
+      const timer = setTimeout(() => {
+        setIsNextAuthLoading(false);
+        checkAuthentication();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [session, router, isNextAuthLoading]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
