@@ -27,6 +27,7 @@ type ErrorState = {
   username: string;
   password: string;
   form: string;
+  auth: string; // Added auth-specific error field
   passwordRequirements: PasswordRequirements;
 };
 
@@ -162,7 +163,8 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<ErrorState>({
     username: "",
     password: "",
-    form: "",
+    form: "", // Keep this in the type but we won't display it
+    auth: "", // We'll only display this one above the button
     passwordRequirements: {
       minLength: false,
       upperCase: false,
@@ -177,6 +179,12 @@ export default function LoginPage() {
   // Update form data
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
+    
+    // Clear auth error when user starts typing again
+    if (errors.auth && (name === "username" || name === "password")) {
+      setErrors(prev => ({ ...prev, auth: "" }));
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -213,6 +221,7 @@ export default function LoginPage() {
       username: "",
       password: "",
       form: "",
+      auth: "", // Add the missing auth property
       passwordRequirements: errors.passwordRequirements
     };
     
@@ -255,6 +264,9 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Clear any previous auth errors
+    setErrors(prev => ({ ...prev, auth: "" }));
+    
     if (!validateForm()) {
       return;
     }
@@ -278,10 +290,12 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (!response.ok) {
+        // Only set the auth error message that appears above the button
         setErrors(prev => ({
           ...prev,
-          form: data.error || "Authentication failed"
+          auth: data.error || "Invalid username or password"
         }));
+        
         toast.error(data.error || "Login failed. Please try again.");
         return;
       }
@@ -302,9 +316,11 @@ export default function LoginPage() {
     } catch (error) {
       console.error("Login failed:", error);
       toast.error("Login failed. Please try again later.");
+      
+      // Only set the auth error
       setErrors(prev => ({
         ...prev,
-        form: "An unexpected error occurred. Please try again."
+        auth: "Authentication failed. Please try again."
       }));
     } finally {
       setIsLoading(false);
@@ -501,14 +517,7 @@ export default function LoginPage() {
             <p className="text-sm opacity-70 text-center">Please sign in to continue</p>
           </div>
 
-          {errors.form && (
-            <div className="alert alert-error mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{errors.form}</span>
-            </div>
-          )}
+          {/* Removed the top error alert that used errors.form */}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-control">
@@ -582,6 +591,16 @@ export default function LoginPage() {
                 </Link>
               </div>
             </div>
+            
+            {/* Keep only this authentication error message above the sign-in button */}
+            {errors.auth && (
+              <div className="bg-error/10 text-error px-4 py-3 rounded-lg flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6 mt-0.5" fill="none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm font-medium">{errors.auth}</span>
+              </div>
+            )}
             
             <button 
               type="submit" 
