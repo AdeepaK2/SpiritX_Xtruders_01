@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";  // Add AnimatePresence
 import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
@@ -89,6 +89,59 @@ const SocialLoginButtons = () => {
   );
 };
 
+// Loading overlay component
+const LoadingOverlay = ({ message = "Loading..." }: { message?: string }) => (
+  <motion.div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-base-100/80 backdrop-blur-sm"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    transition={{ duration: 0.3 }}
+  >
+    <motion.div 
+      className="bg-base-100 rounded-xl p-8 shadow-lg flex flex-col items-center"
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 0.1, duration: 0.3 }}
+    >
+      <div className="relative">
+        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+          <motion.div
+            className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-2xl"
+            animate={{ 
+              scale: [1, 1.1, 1],
+              rotate: [0, 10, -10, 0]
+            }}
+            transition={{ 
+              duration: 1.5, 
+              repeat: Infinity,
+              ease: "easeInOut" 
+            }}
+          >
+            SX
+          </motion.div>
+        </div>
+      </div>
+      
+      <div className="mt-6 w-48">
+        <motion.div
+          className="h-1 bg-primary rounded-full"
+          initial={{ width: 0 }}
+          animate={{ width: "100%" }}
+          transition={{ 
+            duration: 1.5, 
+            repeat: Infinity,
+            repeatType: "reverse",
+            ease: "easeInOut"
+          }}
+        />
+      </div>
+      
+      <p className="mt-4 font-medium text-base-content">{message}</p>
+    </motion.div>
+  </motion.div>
+);
+
 export default function LoginPage() {
   // Form state
   const [formData, setFormData] = useState<FormState>({
@@ -102,6 +155,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   // Add this line - NextAuth loading state
   const [isNextAuthLoading, setIsNextAuthLoading] = useState(true);
+  // Add this line for initial page loading state
+  const [isPageLoading, setIsPageLoading] = useState(true);
   
   // Error state
   const [errors, setErrors] = useState<ErrorState>({
@@ -282,6 +337,12 @@ export default function LoginPage() {
 
   // Check authentication on component mount
   useEffect(() => {
+    // Add delay before checking to allow for animation
+    const initialLoadTimer = setTimeout(() => {
+      setIsPageLoading(false);
+    }, 1800); // Show initial loading animation for 1.8 seconds
+    
+    // Rest of the useEffect code remains the same...
     // Check for NextAuth callback in URL (when returning from Google)
     const isAuthCallback = typeof window !== 'undefined' && 
       (window.location.search.includes('callback') || 
@@ -322,7 +383,10 @@ export default function LoginPage() {
         checkAuthentication();
       }, 2000);
       
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(initialLoadTimer); // Clean up both timers
+      }
     }
   }, [session, router, isNextAuthLoading]); // Add isNextAuthLoading to dependencies
 
@@ -364,11 +428,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Toaster />
+
+      {/* Loading overlay */}
+      <AnimatePresence>
+        {(isPageLoading || isNextAuthLoading) && (
+          <LoadingOverlay message="Preparing your login..." />
+        )}
+        {(!isPageLoading && !isNextAuthLoading && isLoading) && (
+          <LoadingOverlay message="Signing you in..." />
+        )}
+      </AnimatePresence>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5, delay: isPageLoading ? 1.8 : 0 }}
         className="card w-full max-w-md bg-base-100 shadow-xl"
       >
         <div className="card-body p-8">
