@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";  // Add AnimatePresence
-import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaGoogle, FaEye, FaEyeSlash, FaLock, FaLockOpen } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
@@ -90,57 +90,74 @@ const SocialLoginButtons = () => {
 };
 
 // Loading overlay component
-const LoadingOverlay = ({ message = "Loading..." }: { message?: string }) => (
-  <motion.div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-base-100/80 backdrop-blur-sm"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    <motion.div 
-      className="bg-base-100 rounded-xl p-8 shadow-lg flex flex-col items-center"
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay: 0.1, duration: 0.3 }}
+const LoadingOverlay = ({ message = "Loading..." }: { message?: string }) => {
+  // Add state to control lock open/close
+  const [isLocked, setIsLocked] = useState(true);
+  
+  // Toggle lock state with useEffect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsLocked(prev => !prev);
+    }, 1500);
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-base-100/80 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      <div className="relative">
-        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+      <motion.div 
+        className="bg-base-100 rounded-xl p-8 shadow-lg flex flex-col items-center"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.3 }}
+      >
+        <div className="relative">
+          <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
+            <motion.div
+              className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white"
+              animate={{ 
+                scale: isLocked ? [1, 1.1, 1] : [1, 0.9, 1],
+                rotate: isLocked ? [0, 0] : [0, -10, 0, 10, 0],
+              }}
+              transition={{ 
+                duration: 0.5,
+                ease: "easeInOut"
+              }}
+            >
+              {isLocked ? (
+                <FaLockOpen size={32} />
+              ) : (
+                <FaLock size={32} />
+              )}
+            </motion.div>
+          </div>
+        </div>
+        
+        <div className="mt-6 w-48">
           <motion.div
-            className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-2xl"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 10, -10, 0]
-            }}
+            className="h-1 bg-primary rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: "100%" }}
             transition={{ 
               duration: 1.5, 
               repeat: Infinity,
-              ease: "easeInOut" 
+              repeatType: "reverse",
+              ease: "easeInOut"
             }}
-          >
-            SX
-          </motion.div>
+          />
         </div>
-      </div>
-      
-      <div className="mt-6 w-48">
-        <motion.div
-          className="h-1 bg-primary rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ 
-            duration: 1.5, 
-            repeat: Infinity,
-            repeatType: "reverse",
-            ease: "easeInOut"
-          }}
-        />
-      </div>
-      
-      <p className="mt-4 font-medium text-base-content">{message}</p>
+        
+        <p className="mt-4 font-medium text-base-content">{message}</p>
+      </motion.div>
     </motion.div>
-  </motion.div>
-);
+  );
+};
 
 export default function LoginPage() {
   // Form state
