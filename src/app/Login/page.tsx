@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
+import { motion } from "framer-motion";
+import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { signIn, useSession } from "next-auth/react";
@@ -27,7 +27,6 @@ type ErrorState = {
   username: string;
   password: string;
   form: string;
-  auth: string; // Added auth-specific error field
   passwordRequirements: PasswordRequirements;
 };
 
@@ -55,10 +54,12 @@ const PasswordRequirements = ({ requirements }: { requirements: PasswordRequirem
 // Social login buttons component
 const SocialLoginButtons = () => {
   const handleGoogleSignIn = async () => {
-    // Don't show toast since we'll show the loading overlay
-    // toast.loading("Connecting to Google...", { id: "google-signin" });
+    toast.loading("Connecting to Google...", {
+      id: "google-signin",
+    });
     
     try {
+      // Direct redirect to homepage after Google authentication
       await signIn('google', { 
         callbackUrl: '/', 
         redirect: true
@@ -66,82 +67,27 @@ const SocialLoginButtons = () => {
     } catch (error) {
       console.error("Google sign-in failed:", error);
       toast.error("Google sign-in failed. Please try again.");
+      toast.dismiss("google-signin");
     }
   };
 
   return (
     <>
       <div className="divider my-6 text-xs text-gray-500">OR CONTINUE WITH</div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="w-full"> {/* Changed from flex justify-center to full width container */}
         <button 
           onClick={handleGoogleSignIn}
           type="button"
-          className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+          className="btn btn-outline w-full flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700" 
+          /* Removed btn-sm and px-8, added w-full for consistent width */
         >
           <FaGoogle className="text-red-500" />
           <span>Google</span>
-        </button>
-        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-          <FaFacebook className="text-blue-600" />
-          <span>Facebook</span>
         </button>
       </div>
     </>
   );
 };
-
-// Loading overlay component
-const LoadingOverlay = ({ message = "Loading..." }: { message?: string }) => (
-  <motion.div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-base-100/80 backdrop-blur-sm"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.3 }}
-  >
-    <motion.div 
-      className="bg-base-100 rounded-xl p-8 shadow-lg flex flex-col items-center"
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ delay: 0.1, duration: 0.3 }}
-    >
-      <div className="relative">
-        <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center">
-          <motion.div
-            className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-white font-bold text-2xl"
-            animate={{ 
-              scale: [1, 1.1, 1],
-              rotate: [0, 10, -10, 0]
-            }}
-            transition={{ 
-              duration: 1.5, 
-              repeat: Infinity,
-              ease: "easeInOut" 
-            }}
-          >
-            SX
-          </motion.div>
-        </div>
-      </div>
-      
-      <div className="mt-6 w-48">
-        <motion.div
-          className="h-1 bg-primary rounded-full"
-          initial={{ width: 0 }}
-          animate={{ width: "100%" }}
-          transition={{ 
-            duration: 1.5, 
-            repeat: Infinity,
-            repeatType: "reverse",
-            ease: "easeInOut"
-          }}
-        />
-      </div>
-      
-      <p className="mt-4 font-medium text-base-content">{message}</p>
-    </motion.div>
-  </motion.div>
-);
 
 export default function LoginPage() {
   // Form state
@@ -154,17 +100,14 @@ export default function LoginPage() {
   // UI state
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Add this line - NextAuth loading state
   const [isNextAuthLoading, setIsNextAuthLoading] = useState(true);
-  const [isPageLoading, setIsPageLoading] = useState(true);
-  // Add theme state
-  const [theme, setTheme] = useState<string>("light");
   
   // Error state
   const [errors, setErrors] = useState<ErrorState>({
     username: "",
     password: "",
-    form: "", // Keep this in the type but we won't display it
-    auth: "", // We'll only display this one above the button
+    form: "",
     passwordRequirements: {
       minLength: false,
       upperCase: false,
@@ -179,12 +122,6 @@ export default function LoginPage() {
   // Update form data
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    
-    // Clear auth error when user starts typing again
-    if (errors.auth && (name === "username" || name === "password")) {
-      setErrors(prev => ({ ...prev, auth: "" }));
-    }
-    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -221,7 +158,6 @@ export default function LoginPage() {
       username: "",
       password: "",
       form: "",
-      auth: "", // Add the missing auth property
       passwordRequirements: errors.passwordRequirements
     };
     
@@ -264,9 +200,6 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Clear any previous auth errors
-    setErrors(prev => ({ ...prev, auth: "" }));
-    
     if (!validateForm()) {
       return;
     }
@@ -290,12 +223,10 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (!response.ok) {
-        // Only set the auth error message that appears above the button
         setErrors(prev => ({
           ...prev,
-          auth: data.error || "Invalid username or password"
+          form: data.error || "Authentication failed"
         }));
-        
         toast.error(data.error || "Login failed. Please try again.");
         return;
       }
@@ -316,11 +247,9 @@ export default function LoginPage() {
     } catch (error) {
       console.error("Login failed:", error);
       toast.error("Login failed. Please try again later.");
-      
-      // Only set the auth error
       setErrors(prev => ({
         ...prev,
-        auth: "Authentication failed. Please try again."
+        form: "An unexpected error occurred. Please try again."
       }));
     } finally {
       setIsLoading(false);
@@ -353,11 +282,6 @@ export default function LoginPage() {
 
   // Check authentication on component mount
   useEffect(() => {
-    // Add delay before checking to allow for animation
-    const initialLoadTimer = setTimeout(() => {
-      setIsPageLoading(false);
-    }, 1800); // Show initial loading animation for 1.8 seconds
-    
     // Check for NextAuth callback in URL (when returning from Google)
     const isAuthCallback = typeof window !== 'undefined' && 
       (window.location.search.includes('callback') || 
@@ -398,12 +322,9 @@ export default function LoginPage() {
         checkAuthentication();
       }, 2000);
       
-      return () => {
-        clearTimeout(timer);
-        clearTimeout(initialLoadTimer);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [session, router, isNextAuthLoading]);
+  }, [session, router, isNextAuthLoading]); // Add isNextAuthLoading to dependencies
 
   useEffect(() => {
     // Check if user is already on the login page due to a redirect
@@ -440,84 +361,30 @@ export default function LoginPage() {
     }
   }, [session, router, isNextAuthLoading]);
 
-  // Theme toggle function
-  const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
-    document.documentElement.setAttribute("data-theme", newTheme);
-    
-    // Add page reload to ensure all theme styles are properly applied
-    window.location.reload();
-  };
-
-  // Initialize theme from localStorage or system preference
-  useEffect(() => {
-    // Only run on client-side
-    if (typeof window !== "undefined") {
-      const savedTheme = localStorage.getItem("theme") || 
-        (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      
-      setTheme(savedTheme);
-      document.documentElement.setAttribute("data-theme", savedTheme);
-    }
-  }, []);
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Toaster />
-
-      {/* Loading overlay */}
-      <AnimatePresence>
-        {(isPageLoading || isNextAuthLoading) && (
-          <LoadingOverlay message="Preparing your login..." />
-        )}
-        {(!isPageLoading && !isNextAuthLoading && isLoading) && (
-          <LoadingOverlay message="Signing you in..." />
-        )}
-      </AnimatePresence>
       
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: isPageLoading ? 1.8 : 0 }}
-        className="card w-full max-w-md bg-base-100 shadow-xl relative"
+        transition={{ duration: 0.5 }}
+        className="card w-full max-w-md bg-base-100 shadow-xl"
       >
-        {/* Theme toggle - added at top-right corner */}
-        <div className="absolute top-4 right-4 z-10">
-          <label className="swap swap-rotate">
-            <input 
-              type="checkbox" 
-              className="theme-controller" 
-              checked={theme === "dark"}
-              onChange={toggleTheme}
-            />
-            {/* sun icon */}
-            <svg
-              className="swap-off h-6 w-6 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24">
-              <path
-                d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z" />
-            </svg>
-            {/* moon icon */}
-            <svg
-              className="swap-on h-6 w-6 fill-current"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24">
-              <path
-                d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-            </svg>
-          </label>
-        </div>
-
         <div className="card-body p-8">
           <div className="flex flex-col items-center mb-8">
             <h2 className="card-title text-3xl font-bold text-center mb-2">Welcome Back</h2>
             <p className="text-sm opacity-70 text-center">Please sign in to continue</p>
           </div>
 
-          {/* Removed the top error alert that used errors.form */}
+          {errors.form && (
+            <div className="alert alert-error mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{errors.form}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="form-control">
@@ -591,16 +458,6 @@ export default function LoginPage() {
                 </Link>
               </div>
             </div>
-            
-            {/* Keep only this authentication error message above the sign-in button */}
-            {errors.auth && (
-              <div className="bg-error/10 text-error px-4 py-3 rounded-lg flex items-start gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6 mt-0.5" fill="none" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span className="text-sm font-medium">{errors.auth}</span>
-              </div>
-            )}
             
             <button 
               type="submit" 
