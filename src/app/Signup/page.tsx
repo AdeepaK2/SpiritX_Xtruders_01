@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { FaGoogle, FaFacebook, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaGoogle, FaEye, FaEyeSlash } from "react-icons/fa"; // Removed FaFacebook
 import { Toaster, toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react"; // Add this import
@@ -519,20 +519,17 @@ export default function SignupPage() {
                     </form>
 
                     <div className="divider my-6 text-xs text-gray-500">OR CONTINUE WITH</div>
-
-                    <div className="grid grid-cols-2 gap-3">
+                    
+                    {/* Updated Google button to match Login page - removed grid and Facebook button */}
+                    <div className="w-full">
                         <button 
                             onClick={handleGoogleSignIn}
                             type="button"
                             disabled={isLoading}
-                            className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            className="btn btn-outline w-full flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                             <FaGoogle className="text-red-500" />
                             <span>Google</span>
-                        </button>
-                        <button className="btn btn-outline btn-sm flex items-center justify-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <FaFacebook className="text-blue-600" />
-                            <span>Facebook</span>
                         </button>
                     </div>
 
